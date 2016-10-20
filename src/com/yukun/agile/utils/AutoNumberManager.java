@@ -8,37 +8,59 @@ import com.agile.api.*;
 public class AutoNumberManager {
 
     /*
-     * 获取所需类的下一个自动编码（取第一个编码方案）
+     * 获取所需类的下一个自动编码
      */
-    public String getNextAutoNumberByClassType(IAdmin admin, int classType) {
-        System.out.print("\t自动编码生成中 —— ");
-        String nextAutoNumber = "";
+    public static String getNextAutoNumberByAgileClass(IAdmin admin, int classType, String autoNumberApiName) throws APIException {
+        String nextAutoNumber = null;
+        IAgileClass agileClass;
 
-        IAgileClass cls;
-        try {
-            cls = admin.getAgileClass(classType);
-            IAutoNumber[] numSources = cls.getAutoNumberSources();
+        if ((autoNumberApiName != null) && (!autoNumberApiName.equals(""))) {
+            agileClass = admin.getAgileClass(classType);
+            IAutoNumber[] autoNumberSources = agileClass.getAutoNumberSources();
 
-            nextAutoNumber = numSources[0].getNextNumber();
-            System.out.println(nextAutoNumber);
-            return nextAutoNumber;
-        } catch (APIException e) {
-            System.out.println("生成失败！");
-            e.printStackTrace();
+            for (IAutoNumber autoNumber : autoNumberSources) {
+                if (autoNumber.getAPIName().equals(autoNumberApiName))
+                    nextAutoNumber = autoNumber.getNextNumber();
+            }
+        } else {
+            agileClass = admin.getAgileClass(classType);
+            IAutoNumber[] autoNumberSources = agileClass.getAutoNumberSources();
+
+            if (autoNumberSources.length > 0)
+                nextAutoNumber = autoNumberSources[0].getNextNumber();
         }
 
-        return null;
+        return nextAutoNumber;
     }
 
-    /*
-     * 根据autonumberAPI获取新的编码
-     */
-    public String getNextAutoNumberByAPI(IAdmin admin, String API) throws APIException {
-        // 获取所求自动编码源
-        INode autoNumberNode = admin.getNode(NodeConstants.NODE_AUTONUMBERS);
-        IAutoNumber autoNumber = (IAutoNumber)autoNumberNode.getChildNode(API);
+    public static String getNextAutoNumberByAgileClass(IAgileSession agileSession, Object id) throws APIException {
+        String nextNumber = null;
+        IAdmin admin = agileSession.getAdminInstance();
+        IAgileClass agileClass = admin.getAgileClass(id);
+        IAutoNumber[] autoNumberSources = agileClass.getAutoNumberSources();
+        if (autoNumberSources.length > 0)
+            nextNumber = autoNumberSources[0].getNextNumber();
 
+        return nextNumber;
+    }
+
+    /**
+     * 根据 apiName 获取新的编码
+     * @param agileSession
+     * @param apiName
+     * @return
+     * @throws APIException
+     */
+    public static String getNextAutoNumberByApiName(IAgileSession agileSession, String apiName) throws APIException {
+        String resultAutoNumber = null;
+
+        // 获取自动编码源
+        IAdmin admin = agileSession.getAdminInstance();
+        INode autoNumberNode = admin.getNode(NodeConstants.NODE_AUTONUMBERS);
+        IAutoNumber autoNumber = (IAutoNumber) autoNumberNode.getChildNode(apiName);
         // 获取下一个自动编码
-        return autoNumber.getNextNumber();
+        resultAutoNumber = autoNumber.getNextNumber();
+
+        return resultAutoNumber;
     }
 }
