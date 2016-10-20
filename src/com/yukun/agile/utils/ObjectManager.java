@@ -11,17 +11,17 @@ public class ObjectManager {
     /*
      * 根据对象类型和ID获取对象
      */
-    public IAgileObject getObject(IAgileSession agileSession, int objectType, String number) {
+    public static IAgileObject getObject(IAgileSession agileSession, int objectType, String number) {
         // 用来链接要获取的对象
-        IAgileObject object = null;
+        IAgileObject agileObject = null;
 
         System.out.println("正在获取对象：" + number);
         try {
             // 获取对象
-            object = agileSession.getObject(objectType, number);
+            agileObject = agileSession.getObject(objectType, number);
 
             System.out.println("\t对象 " + number + " 获取成功！");
-            return object;
+            return agileObject;
         } catch (APIException e) {
             System.out.println("\t获取对象 " + number + " 失败！");
             e.printStackTrace();
@@ -42,7 +42,7 @@ public class ObjectManager {
      * @param value
      * @throws APIException
      */
-    public void setListValue(IDataObject dataObject, Object key, String value) throws APIException {
+    public static void setListValue(IDataObject dataObject, Object key, String value) throws APIException {
         ICell cell = dataObject.getCell(key);	// 要设值的Cell
         IAgileList agileList = cell.getAvailableValues();    // 存放被选条目的AgileList
 
@@ -66,7 +66,14 @@ public class ObjectManager {
         return;
     }
 
-    public void setFieldValue(IDataObject dataObject, Object key, String value) throws APIException {
+    /**
+     * 设置字段值
+     * @param dataObject
+     * @param key
+     * @param value
+     * @throws APIException
+     */
+    public static void setFieldValue(IDataObject dataObject, Object key, String value) throws APIException {
         ICell cell = dataObject.getCell(key);    // 要设值的Cell
 
         // 根据字段类型设置
@@ -95,92 +102,41 @@ public class ObjectManager {
                 cell.setValue(multiList);
                 break;
         }
-
-        return;
     }
 
     /**
-     * 以String的形式获得列表字段的值
-     *
+     * 获取字段值
      * @param dataObject
      * @param key
      * @return
      * @throws APIException
      */
-    public String getListValue(IDataObject dataObject, Object key) throws APIException {
-        String value = dataObject.getValue(key).toString();    // 列表值
-
-        return value;
-    }
-
-    public String getFieldValue(IDataObject dataObject, Object key) throws APIException {
+    public static String getFieldValue(IDataObject dataObject, Object key) throws APIException {
         String value = dataObject.getValue(key).toString();    // 列表值
 
         return value;
     }
 
     /**
-     * 使用自动编码创建系统对象
-     *
+     * 创建 agileObject，如果没有给编码，则试图通过其第一个自动编码来创建
+     * @param agileSession
+     * @param id
+     * @param number
+     * @return
+     * @throws APIException
      */
-    public IAgileObject createObject(IAdmin admin, IAgileSession agileSession, int objectType) {
-        IAgileObject object = null;		// 用来连接要获取的对象
-        String number = null;			//用来存放对象的编码
+    public static IAgileObject createObject(IAgileSession agileSession, Object id, String number) throws APIException {
+        IAgileObject agileObject = null;
 
-        // 实例化所需的管理器
-        AutoNumberManager autoNumberManager = new AutoNumberManager();
-
-        System.out.println("正在创建对象……");
-        number = autoNumberManager.getNextAutoNumberByClassType(admin, objectType);
-        try {
-            object = agileSession.createObject(objectType, number);
-            System.out.println("\t对象 " + number + " 创建成功！");
-            return object;
-        } catch (APIException e) {
-            System.out.println("\t创建对象失败！");
-            e.printStackTrace();
+        if (number == null || number.equals("")) {
+            String nextNumber = AutoNumberManager.getNextAutoNumberByAgileClass(agileSession, id);
+            if (nextNumber != null) {
+                agileObject = agileSession.createObject(id, nextNumber);
+            }
+        } else {
+            agileObject = agileSession.createObject(id, number);
         }
 
-        return null;
-    }
-
-    /*
-     * 使用自动编码创建自定义对象
-     */
-    public IAgileObject createObject(IAdmin admin, IAgileSession agileSession, String objectTypeAPI) {
-        IAgileObject object = null;			// 用来连接要获取的对象
-        Integer objectType = null;			// 该对象类型的标示号
-        String number = null;				//用来存放对象的编码
-
-        // 实例化所需的管理器
-        AutoNumberManager autoNumberManager = new AutoNumberManager();
-
-        System.out.println("正在创建对象……");
-        try {
-            // 查找所需对象类型的标示号
-            IAgileClass[] classes = admin.getAgileClasses(IAdmin.CONCRETE);
-            for (int i = 0; i < classes.length; i++) {
-                if (classes[i].getAPIName().equals(objectTypeAPI)) {
-                    objectType = (Integer)classes[i].getId();
-                    break;
-                }
-            }
-
-            if (objectType != null) {
-                // 获取自动编码，并创建对象
-                number = autoNumberManager.getNextAutoNumberByClassType(admin, objectType);
-                object = agileSession.createObject(objectType, number);
-                System.out.println("\t对象 " + number + " 创建成功！");
-                return object;
-            }
-            else {
-                System.out.println("/t创建对象失败：对象的类型不存在！");
-            }
-        } catch (APIException e) {
-            System.out.println("\t创建对象失败！");
-            e.printStackTrace();
-        }
-
-        return null;
+        return agileObject;
     }
 }
